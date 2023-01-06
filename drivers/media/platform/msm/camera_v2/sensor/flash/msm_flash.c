@@ -361,14 +361,24 @@ static int32_t msm_flash_gpio_init(
 static int32_t msm_flash_i2c_release(
 	struct msm_flash_ctrl_t *flash_ctrl)
 {
-	if (msm_camera_power_down(&flash_ctrl->power_info,
+	int32_t rc = 0;
+
+	if ((&flash_ctrl->power_info == NULL) ||
+		(&flash_ctrl->flash_i2c_client == NULL)) {
+		pr_err("%s:%d failed: %pK %pK\n",
+			__func__, __LINE__, &flash_ctrl->power_info,
+			&flash_ctrl->flash_i2c_client);
+		return -EINVAL;
+	}
+
+	rc = msm_camera_power_down(&flash_ctrl->power_info,
 		flash_ctrl->flash_device_type,
-		&flash_ctrl->flash_i2c_client) < 0) {
+		&flash_ctrl->flash_i2c_client);
+	if (rc < 0) {
 		pr_err("%s msm_camera_power_down failed %d\n",
 			__func__, __LINE__);
 		return -EINVAL;
 	}
-
 	return 0;
 }
 
@@ -1062,12 +1072,11 @@ static int32_t msm_flash_get_pmic_source_info(
 				of_node_put(torch_src_node);
 				continue;
 			}
-			#ifdef CONFIG_KERNEL_CUSTOM_F7A
-			if(fctrl->torch_max_current[i] < 1000)
-			{
+
+#ifdef CONFIG_MACH_XIAOMI_LAVENDER
+			if (fctrl->torch_max_current[i] < 1000)
 				fctrl->torch_max_current[i] = 1000;
-			}
-			#endif
+#endif
 
 			of_node_put(torch_src_node);
 
